@@ -40,7 +40,7 @@ N.B. to give you a bit more data I included data from last year (Study1) and fro
 - Does this tell you more than just eyeballing the plots?
 
 ```{r setup, include=FALSE}
-library(lmerTest);library(ggplot2) ;library(caret); library(pastecs); library(lsr); library(crqa);library(magrittr); library(dplyr); library(tidyr); library(pacman); library(groupdata2)
+library(lmerTest);library(ggplot2) ;library(caret); library(pastecs); library(lsr); library(crqa);library(magrittr); library(dplyr); library(tidyr); library(pacman); library(groupdata2); library(stringr); library(readr)
 p1t1 = read.csv("CleanData/Study2_G5_T1_Synchronous.csv")
 p1t2 = read.csv("CleanData/Study2_G5_T2_TurnTaking.csv")
 p1t3 = read.csv("CleanData/Study2_G5_T3_Conversation.csv")
@@ -143,8 +143,9 @@ Radius = NULL
 Delay = NULL
 n = 1
 
-for (files in file) {
-ans_Resp = optimizeParam(file$Resp1S, file$Resp2S, par, min.rec = 3.5, max.rec = 4.5)
+for (file in files) {
+  #d = read.delim(paste0("Cleandata/Study2_G5", file))
+  ans_Resp = optimizeParam(file$Resp1S, file$Resp2S, par, min.rec = 3.5, max.rec = 4.5)
 
 Dimension[n] = ans_Resp$emddim
 Radius[n] = ans_Resp$radius
@@ -154,9 +155,14 @@ n=n+1
 
 }
 
-param = data.frame(Dimension, Radius, Delay)
+param_resp = data.frame(Dimension, Radius, Delay)
 
-Results=crqa (pitch$f0, pitch$f0, delay= ans$delay, embed= ans$emddim, radius= ans$radius, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+mean(param_resp$Dimension) # 2.33 = 2
+mean(param_resp$Delay) # 36
+mean(param_resp$Radius) # 0.44
+
+#Results for synchronous condition:
+Results=crqa (p1t1$Resp1S, p1t1$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 #To plot the results in a recurrence plot
 RP = Results$RP
@@ -164,19 +170,60 @@ RP = matrix(as.numeric(RP), nrow = ncol(RP))
 cols = c("white","blue4") 
 image(RP, xlab = "", ylab = "", col = cols)
 
+
+######### SHOULD THERE BE A PLOT HERE?!??!
+
 #Explore the lags of coordination:
-Profile=drpdfromts(pitch$f0, pitch$f0,datatype = 'continuous',ws=50,radius=ans$radius)
+Profile=drpdfromts(p1t1$Resp1S, p1t1$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
 timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
 maxlag = Profile$maxlag/1000
 profile = Profile$profile*100
 Prof=data.frame(profile)
 ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red') 
 
-- Run crqa on heart rate and respiration data (find parameters, run crqa)
-- Does this tell you more than just eyeballing the plots?
+
+#Results for turn taking condition:
+Results=crqa (p1t2$Resp1S, p1t2$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+
+#To plot the results in a recurrence plot
+RP = Results$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4") 
+image(RP, xlab = "", ylab = "", col = cols)
 
 
+######### SHOULD THERE BE A PLOT HERE?!??!
 
+#Explore the lags of coordination:
+Profile=drpdfromts(p1t2$Resp1S, p1t2$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+maxlag = Profile$maxlag/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red') 
+
+#Results for conversation condition:
+Results=crqa (p1t3$Resp1S, p1t3$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+
+#To plot the results in a recurrence plot
+RP = Results$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4") 
+image(RP, xlab = "", ylab = "", col = cols)
+
+
+######### SHOULD THERE BE A PLOT HERE?!??!
+
+#Explore the lags of coordination:
+Profile=drpdfromts(p1t3$Resp1S, p1t3$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+maxlag = Profile$maxlag/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red') 
+
+
+#### WHAT DOES THESE PLOTS SHOW ME?!?!?
 
 
 ```
@@ -195,7 +242,7 @@ removeOuts <- function(ts,threshold){
   threshold=2.5 
 
 
-files = list.files(path="Tryout", pattern = ".csv")
+filelist = list.files(path="CleanData", pattern = ".csv")
 
 preprocess = function(data){
   data = data%>%    
@@ -209,7 +256,7 @@ preprocess = function(data){
   data$HR1=removeOuts(data$HR1,threshold)
   data$HR2=removeOuts(data$HR2,threshold)
   data$Resp1=removeOuts(data$Resp1,threshold)
-  data$resp2=removeOuts(data$Resp2,threshold)
+  data$Resp2=removeOuts(data$Resp2,threshold)
 
 #Scaling the signals: 
   data$Resp1S=scale(data$Resp1)  
@@ -219,48 +266,53 @@ preprocess = function(data){
   
   return(data)
 }
-preprocess(files)
 
 
-
+#To create a loop to preprocess all data
+finaldata = data.frame()
 n = 1 
 
-for (file in files) {
-  d = read.delim(paste0("Tryout/", file))
-  #filename[n] = files[n]
-  d = d%>%    
-  group(n= 100, method= 'greedy') %>%    
-  dplyr::summarise(time= mean(time,na.rm=T),        
-                   HR1 = mean(HR1,na.rm=T),       
-                   HR2 = mean(HR2,na.rm=T),       
-                   Resp1 = mean(Resp1,na.rm=T),       
-                   Resp2 = mean(Resp2,na.rm=T))
-#Outlier removal
-  d$HR1=removeOuts(d$HR1,threshold)
-  d$HR2=removeOuts(d$HR2,threshold)
-  d$Resp1=removeOuts(d$Resp1,threshold)
-  d$resp2=removeOuts(d$Resp2,threshold)
-
-#Scaling the signals: 
-  d$Resp1S=scale(d$Resp1)  
-  d$Resp2S=scale(d$Resp2)  
-  d$HR1S=scale(d$HR1) 
-  d$HR2S=scale(d$HR2)
+for (file in filelist) {
+  data1=read_csv(paste0("Cleandata/",file))
   
-  d$time = d$time
-  time[n] = d$times
-  HR1[n] = d$HR1S
-  HR2[n] = d$HR2S
-  Resp1[n] = d$Resp1S
-  Resp2[n] = d$Resp2S
+  datafile=preprocess(data1)
   
-  n = n + 1
+  datafile$filename = filelist[n] # THIS SEEMS TO NOT WORK
   
-}
+  finaldata = rbind(finaldata, datafile)
+  
+  Resp_plot= ggplot(datafile, aes(x=time, y= Resp1S)) + geom_line(color = "red") + geom_line(aes(x=time, y=Resp2S), color = "blue")
+  
+  HR_plot = ggplot(datafile, aes(x=time, y= HR1S)) + geom_line(color = "purple") + geom_line(aes(x=time, y=HR2S), color = "chartreuse4")
+  
+  final_plot=gridExtra::grid.arrange(Resp_plot, HR_plot)
+  
+  ggsave(paste0(file, ".png"), plot = final_plot, path = "Plot")
+  
+  n=n+1
+} 
 
 df = data.frame(time, HR1, HR2, Resp1, Resp2)
 write.csv(df, "Finaldata.csv")
 
+
+
+
+data1=read_csv(paste0("Cleandata/",file))
+  
+datafile=preprocess(data1)
+  
+datafile$filename = filelist[n]
+  
+finaldata = rbind(finaldata, datafile)
+  
+Resp_plot= ggplot(datafile, aes(x=time, y= Resp1S)) + geom_line(color = "red") + geom_line(aes(x=time, y=Resp2S), color = "blue")
+  
+HR_plot = ggplot(datafile, aes(x=time, y= HR1S)) + geom_line(color = "purple") + geom_line(aes(x=time, y=HR2S), color = "chartreuse4")
+  
+final_plot=gridExtra::grid.arrange(Resp_plot, HR_plot)
+  
+ggsave(paste0(file, ".png"), plot = final_plot, path = "Plot")
 
 ```
 ### Creating controls: shuffled controls
