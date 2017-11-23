@@ -76,7 +76,7 @@ p1t3 = p1t3 %>% group(n= 100, method= 'greedy') %>% dplyr::summarise(time= mean(
 removeOuts <- function(ts,threshold){
   ts[ts > (mean(ts,na.rm=T) +              (threshold*sd(ts,na.rm=T))) |  ts < (mean(ts,na.rm=T) -           (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)   
   return(ts)}
-threshold=1.5 
+threshold=2.5 
 
 #Outlier removal
 p1t1$HR1=removeOuts(p1t1$HR1,threshold)
@@ -138,40 +138,61 @@ par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 4
 
 files = list(p1t1, p1t2, p1t3)
 
-Dimension = NULL
-Radius = NULL
-Delay = NULL
+Dimension_resp = NULL
+Radius_resp = NULL
+Delay_resp = NULL
+Dimension_HR = NULL
+Radius_HR = NULL
+Delay_HR = NULL
 n = 1
 
 for (file in files) {
-  #d = read.delim(paste0("Cleandata/Study2_G5", file))
-  ans_Resp = optimizeParam(file$Resp1S, file$Resp2S, par, min.rec = 3.5, max.rec = 4.5)
-
-Dimension[n] = ans_Resp$emddim
-Radius[n] = ans_Resp$radius
-Delay[n] = ans_Resp$delay
-
+  ans_Resp = try(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec = 2, max.rec = 8))
+  ans_HR = try(optimizeParam(file$HR1S, file$HR2S, par, min.rec = 2, max.rec = 8))
+  if (length(ans_Resp) > 1) {
+  
+  Dimension_resp[n] = ans_Resp$emddim
+  Radius_resp[n] = ans_Resp$radius
+  Delay_resp[n] = ans_Resp$delay
+  }
+  
+  else {
+    Dimension_resp[n] = NA
+    Radius_resp[n] = NA
+    Delay_resp[n] = NA
+  }
+  
+  if (length(ans_HR) > 1) {
+  
+  Dimension_HR[n] = ans_HR$emddim
+  Radius_HR[n] = ans_HR$radius
+  Delay_HR[n] = ans_HR$delay
+  }
+  
+  else {
+    Dimension_HR[n] = NA
+    Radius_HR[n] = NA
+    Delay_HR[n] = NA
+  }
 n=n+1
 
 }
 
-param_resp = data.frame(Dimension, Radius, Delay)
+param_resp = data.frame(Dimension_resp, Radius_resp, Delay_resp, Dimension_HR, Radius_HR, Delay_HR)
 
-mean(param_resp$Dimension) # 2.33 = 2
-mean(param_resp$Delay) # 36
-mean(param_resp$Radius) # 0.44
+mean(param_resp$Dimension, na.rm = TRUE) # 2
+mean(param_resp$Delay, na.rm = TRUE) # 28
+mean(param_resp$Radius, na.rm = TRUE) # 0.38
 
 #Results for synchronous condition:
-Results=crqa (p1t1$Resp1S, p1t1$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+Results_sync=crqa (p1t1$Resp1S, p1t1$Resp2S, delay= 28, embed= 2, radius= 0.38, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 #To plot the results in a recurrence plot
-RP = Results$RP
+RP = Results_sync$RP
 RP = matrix(as.numeric(RP), nrow = ncol(RP))
 cols = c("white","blue4") 
 image(RP, xlab = "", ylab = "", col = cols)
 
-
-######### SHOULD THERE BE A PLOT HERE?!??!
 
 #Explore the lags of coordination:
 Profile=drpdfromts(p1t1$Resp1S, p1t1$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
@@ -183,19 +204,16 @@ ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timec
 
 
 #Results for turn taking condition:
-Results=crqa (p1t2$Resp1S, p1t2$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+Results_turn=crqa (p1t2$Resp1S, p1t2$Resp2S, delay= 28, embed= 2, radius= 0.38, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 #To plot the results in a recurrence plot
-RP = Results$RP
+RP = Results_turn$RP
 RP = matrix(as.numeric(RP), nrow = ncol(RP))
 cols = c("white","blue4") 
 image(RP, xlab = "", ylab = "", col = cols)
 
-
-######### SHOULD THERE BE A PLOT HERE?!??!
-
 #Explore the lags of coordination:
-Profile=drpdfromts(p1t2$Resp1S, p1t2$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
+Profile=drpdfromts(p1t2$Resp1S, p1t2$Resp2S,datatype = 'continuous',ws=50,radius=0.38)
 timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
 maxlag = Profile$maxlag/1000
 profile = Profile$profile*100
@@ -203,16 +221,13 @@ Prof=data.frame(profile)
 ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red') 
 
 #Results for conversation condition:
-Results=crqa (p1t3$Resp1S, p1t3$Resp2S, delay= 36, embed= 2, radius= 0.44, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+Results_conv=crqa (p1t3$Resp1S, p1t3$Resp2S, delay= 28, embed= 2, radius= 0.38, normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 #To plot the results in a recurrence plot
-RP = Results$RP
+RP = Results_conv$RP
 RP = matrix(as.numeric(RP), nrow = ncol(RP))
 cols = c("white","blue4") 
 image(RP, xlab = "", ylab = "", col = cols)
-
-
-######### SHOULD THERE BE A PLOT HERE?!??!
 
 #Explore the lags of coordination:
 Profile=drpdfromts(p1t3$Resp1S, p1t3$Resp2S,datatype = 'continuous',ws=50,radius=0.44)
@@ -232,15 +247,6 @@ ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timec
 - Loop through all the files (either with a loop or with a function), check which files should be excluded, if any, and save the pre-processed time-series. Tip: plot and visually inspect the data to figure out which should be excluded.
 - Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 ```{r setup, include=FALSE}
-
-removeOuts <- function(ts,threshold){
-    ts[ts > (mean(ts,na.rm=T) +              
-                (threshold*sd(ts,na.rm=T))) |  
-    ts < (mean(ts,na.rm=T) -
-            (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)   
-  return(ts)}
-  threshold=2.5 
-
 
 filelist = list.files(path="CleanData", pattern = ".csv")
 
@@ -277,7 +283,38 @@ for (file in filelist) {
   
   datafile=preprocess(data1)
   
-  datafile$filename = filelist[n] # THIS SEEMS TO NOT WORK
+  datafile$filename = filelist[n]
+  
+  par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip") 
+
+
+  ans_Resp = try(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec = 2, max.rec = 8))
+  ans_HR = try(optimizeParam(file$HR1S, file$HR2S, par, min.rec = 2, max.rec = 8))
+  if (length(ans_Resp) > 1) {
+  
+  datafile$Dimension_resp = ans_Resp$emddim
+  datafile$Radius_resp = ans_Resp$radius
+  datafile$Delay_resp = ans_Resp$delay
+  }
+  
+  else {
+    datafile$Dimension_resp = NA
+    datafile$Radius_resp = NA
+    datafile$Delay_resp = NA
+  }
+  
+  if (length(ans_HR) > 1) {
+  
+  datafile$Dimension_HR = ans_HR$emddim
+  datafile$Radius_HR = ans_HR$radius
+  datafile$Delay_HR = ans_HR$delay
+  }
+  
+  else {
+    datafile$Dimension_HR = NA
+    datafile$Radius_HR = NA
+    datafile$Delay_HR = NA
+  }
   
   finaldata = rbind(finaldata, datafile)
   
@@ -292,8 +329,7 @@ for (file in filelist) {
   n=n+1
 } 
 
-df = data.frame(time, HR1, HR2, Resp1, Resp2)
-write.csv(df, "Finaldata.csv")
+ggsave("picture.png", plot = final_plot, path = "Plot")
 
 
 
