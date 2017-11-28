@@ -364,6 +364,8 @@ finaldata = finaldata[finaldata$filename !="Study1_G2_T2_Synchronous.csv",]
 write.csv(finaldata, "finaldata.csv")
 
 finaldata = read.csv("finaldata.csv")
+finaldata = finaldata[-1:-2]
+finaldata = finaldata[-2:-5]
 
 # To get mean parameters for CRQA
 mean(finaldata$Dimension_resp, na.rm = TRUE) # 3.19 = 3
@@ -376,36 +378,37 @@ mean(finaldata$Delay_HR, na.rm = TRUE) # 29.8855 = 30
 
 # - Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 
-
-# To run crqa
-filelist = list.files(path="CleanData", pattern = ".csv")
-for (file in filelist) {
-  d = read.csv(paste0("Cleandata/",file))
-  datafile=preprocess(d)
-  resultsHR = crqa(d$HR1S, d$HR2S, delay=30, embed=12,
-               radius=1.633,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
-  DET_HR[n] = resultsHR$DET_HR
-  RP_HR[n] = resultsHR$RR_HR
-  maxL_HR[n] = resultsHR$maxL_HR
-  RR_HR[n] = resultsHR$RR_HR
-  L_HR[n] = resultsHR$L_HR
-  ENTR_HR[n] = resultsHR$ENTR_HR
-  rENTR_HR[n] = resultsHR$rENTR_HR
-  resultsResp = crqa(d$Resp1S, d$Resp2S, delay=29, embed=3,
-               radius=0.614,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
-  DET_Resp[n] = resultsResp$DET_Resp
-  RP_Resp[n] = resultsResp$RR_Resp
-  maxL_Resp[n] = resultsResp$maxL_Resp
-  RR_Resp[n] = resultsResp$RR_Resp
-  L_Resp[n] = resultsResp$L_Resp
-  ENTR_Resp[n] = resultsResp$ENTR_Resp
-  rENTR_Resp[n] = resultsResp$rENTR_Resp
+#To run crqa
+CRQA = function(data) {
+  RespCRQA = crqa(data$Resp1S, data$Resp2S, delay = 29, embed = 3,
+                   radius = 0.8, normalize = 0, rescale = 0,
+                   mindiagline = 2, minvertline = 2)
+  RespCRQA$RP = NULL  # Remove large matrix
+  RespCRQA = as_tibble(RespCRQA) %>%
+    mutate(type = 'Resp')
   
-  filename[n] = files[n]
+  HrCRQA = crqa(data$HR1S, data$HR2S, delay = 30, embed = 12,
+                radius = 2.6, normalize = 0, rescale = 0,
+                mindiagline = 2, minvertline = 2)
+  HrCRQA$RP = NULL  # Remove large matrix
+  HrCRQA = as_tibble(HrCRQA) %>%
+    mutate(type = 'HR')
   
-  n = n + 1
+  return(rbind(RespCRQA, HrCRQA))
+  
 }
-  df = data.frame()
+
+
+crqa_results = finaldata %>%
+  #dplyr::select(-c(.groups)) %>%  # Remove .groups (not needed right?)
+  dplyr::group_by(filename) %>%  # Group by each file
+  dplyr::do(CRQA(.)) %>%  # Do CRQA on each group (file)
+  dplyr::ungroup()  # Ungroup (prob. not needed, didn't check) 
+
+#Checking the value of RR to regulate radius
+mean(crqa_results$RR)
+
+finaldata2 = merge(crqa_results, finaldata, by = "filename")
 
 ```
 ### Creating controls: shuffled controls
@@ -413,6 +416,46 @@ for (file in filelist) {
  - shuffle the timeseries (take a timeseries and rearrange its values in a random order). Tip check the sample() function
  - run crqa and save the output. NB. which delay, embed, radius parameters should you use?
  - statistically compare the crqa indexes in real and shuffled pairs
+ 
+```{r setup, include=FALSE}
+filelist2 = list.files(path = "CleanData", pattern = ".csv")
+
+n = 1
+for (file in filelist2) {
+  data1=read_csv(paste0("Cleandata/",file))
+  datafile=preprocess(data1)
+  datafile$filename = filelist2[n]
+  n = n + 1
+  write.csv(datafile, paste0(file))
+}
+
+
+
+filelist3 = list.files(path = "PreprocessedData", pattern = ".csv")
+CRQA_shuffled = data.frame()
+n=1
+
+for (file in filelist3) {
+  d=read_csv(paste0("PreprocessedData/",file))
+  
+  d$HR1S = sample(d$HR1S)
+  d$HR2S = sample(d$HR2S)
+  d$Resp1S = sample(d$Resp1S)
+  d$Resp2S = sample(d$Resp2S)
+  
+  data=CRQA(d)
+  
+  data$filename = filelist3[n]
+  
+  CRQA_shuffled=rbind(data, CRQA_shuffled)
+  
+  n=n+1
+  
+}
+
+
+
+```
  
 ### TRICKY! Creating controls: surrogate pair controls
  - Per each real pair, identify at least one surrogate pair (matching one of the participants, with somebody doing the same task, but in a different pair). Tip: Celine will share a commented script
