@@ -410,6 +410,9 @@ mean(crqa_results$RR)
 
 finaldata2 = merge(crqa_results, finaldata, by = "filename")
 
+write.csv(finaldata2, "finaldata2.csv")
+
+finaldata2 = read.csv("finaldata2.csv")
 ```
 ### Creating controls: shuffled controls
  - loop through all pairs and conditions
@@ -418,18 +421,6 @@ finaldata2 = merge(crqa_results, finaldata, by = "filename")
  - statistically compare the crqa indexes in real and shuffled pairs
  
 ```{r setup, include=FALSE}
-filelist2 = list.files(path = "CleanData", pattern = ".csv")
-
-n = 1
-for (file in filelist2) {
-  data1=read_csv(paste0("Cleandata/",file))
-  datafile=preprocess(data1)
-  datafile$filename = filelist2[n]
-  n = n + 1
-  write.csv(datafile, paste0(file))
-}
-
-
 
 filelist3 = list.files(path = "PreprocessedData", pattern = ".csv")
 CRQA_shuffled = data.frame()
@@ -437,7 +428,7 @@ n=1
 
 for (file in filelist3) {
   d=read_csv(paste0("PreprocessedData/",file))
-  
+  #Sample function shuffles the results
   d$HR1S = sample(d$HR1S)
   d$HR2S = sample(d$HR2S)
   d$Resp1S = sample(d$Resp1S)
@@ -453,7 +444,30 @@ for (file in filelist3) {
   
 }
 
+finaldata2 = finaldata2[-1]
+crqa_results$CRQA = "Normal"
+CRQA_shuffled$CRQA = "Shuffled"
+CRQA_data = rbind(crqa_results,CRQA_shuffled)
 
+
+CRQA_HR = subset(CRQA_data, type == "HR")
+CRQA_Resp = subset(CRQA_data, type == "Resp")
+#Comparing statistically for HR:
+m1 = lm(RR ~ CRQA, data = CRQA_HR)
+summary(m1)
+m2 = lm(L ~ CRQA, data = CRQA_HR)
+summary(m2)
+m3 = lm(ENTR ~ CRQA, data = CRQA_HR)
+summary(m3)
+
+
+#Comparing statistically for Resp:
+m11 = lm(RR ~ CRQA, data = CRQA_Resp)
+summary(m11)
+m12 = lm(L ~ CRQA, data = CRQA_Resp)
+summary(m12)
+m13 = lm(ENTR ~ CRQA, data = CRQA_Resp)
+summary(m13)
 
 ```
  
