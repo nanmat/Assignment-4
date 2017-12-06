@@ -13,7 +13,7 @@ num=str_extract_all(prepro_filelist, "\\d+") #extract all numbers in the file na
 df= as.data.frame(t(as.data.frame(num))) #create a transposed (i.e. "tipped") dataframe of these number
 rownames(df)<-NULL #Remove rownames.
 
-pairs=as.numeric(unique(df$V2)) #create pairs, i.e. unique group numbers
+pairs=as.numeric(unique(as.numeric(as.character(df$V2)))) #create pairs, i.e. unique group numbers
 
 SurrogateList <- expand.grid(a = pairs, b = pairs) # expand.grid combines all possible combinations of a given vector
 SurrogateList = subset(SurrogateList, a != b) # Ensure that pair 1 (i.e group1) doesn't get paired with it self.

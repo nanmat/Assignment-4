@@ -475,7 +475,200 @@ summary(m13)
  - Per each real pair, identify at least one surrogate pair (matching one of the participants, with somebody doing the same task, but in a different pair). Tip: Celine will share a commented script
  - Run crqa on all the surrogate pairs and save the output. NB. which delay, embed, radius parameters should you use?
  - Test whether crqa shows a difference between real and surrogate pairs
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
+setwd("~/OneDrive/3 Semester/Experimental Methods 3/Assignment 4/CleanData")
+prepro_filelist = list.files(pattern = "Study1") # load the preprocessed files
+
+num=str_extract_all(prepro_filelist, "\\d+") #extract all numbers in the file name (i.e Study?_G?_T?)
+
+df= as.data.frame(t(as.data.frame(num))) #create a transposed (i.e. "tipped") dataframe of these number
+rownames(df)<-NULL #Remove rownames.
+
+pairs=as.numeric(unique(as.numeric(as.character(df$V2)))) #create pairs, i.e. unique group numbers
+
+SurrogateList <- expand.grid(a = pairs, b = pairs) # expand.grid combines all possible combinations of a given vector
+SurrogateList = subset(SurrogateList, a != b) # Ensure that pair 1 (i.e group1) doesn't get paired with it self.
+
+
+# Per each condition
+for (co in c("Synchronous","TurnTaking","SelfPaced")){ #loop through a list of condintions 
+  for (i in 1:nrow(SurrogateList)){ #and loop through all the pairings of the surrogate list
+    
+  #start recreate filenames from the working directory based on the matching from the surrogatelist
+  f1=paste0('Study1_G',SurrogateList$a[i]) #Insert group numeber from Surrogatelist 
+  f2=paste0('Study1_G',SurrogateList$b[i])
+  
+  file1=prepro_filelist[grepl(f1,prepro_filelist) & grepl(co,prepro_filelist)] #insert conditions as well.
+  file2=prepro_filelist[grepl(f2,prepro_filelist) & grepl(co,prepro_filelist)]
+  
+  d1=read.csv(file1) #Load the recreated filenames
+  
+  d2=read.csv(file2) 
+  
+  #Ensure both dataframes have the same length
+  if (nrow(d1)>nrow(d2)){
+    d1=d1[1:nrow(d2),]
+  } else {
+    d2=d2[1:nrow(d1),]
+  }
+  
+  #creation of surrogate files. (Riccardo's idea of having fun and completely overdoing it ;-) ) 
+  #per each 2 pairs there are 4 possible surrogate pairs: 
+  #pair1person1 w pair2person2; 
+  d3=data.frame(Resp1=d1$Resp1,Resp2=d2$Resp2,HR1=d1$HR1,HR2=d2$HR2)
+  #pair1person2 w pair2person2;
+  d4=data.frame(Resp1=d2$Resp1,Resp2=d1$Resp2,HR1=d2$HR1,HR2=d1$HR2)
+  
+  #pair1person1 w pair2person1;
+  d5=data.frame(Resp1=d1$Resp1,Resp2=d2$Resp1,HR1=d1$HR1,HR2=d2$HR1)
+  #pair1person2 w pair2person2
+  d6=data.frame(Resp1=d2$Resp2,Resp2=d1$Resp2,HR1=d2$HR2,HR2=d1$HR2)
+  
+  #Make filenames that tells which pairs have been mixed
+  file3=paste0("Study1_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"a_",co,".csv")
+  file4=paste0("Study1_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"b_",co,".csv")
+  file5=paste0("Study1_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"c_",co,".csv")
+  file6=paste0("Study1_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"d_",co,".csv")
+  
+  #write csv files
+  write_csv(d3,file.path("surrogate",file3))
+  write_csv(d4,file.path("surrogate",file4))
+  write_csv(d5,file.path("surrogate",file5))
+  write_csv(d6,file.path("surrogate",file6))
+  }
+}
+
+
+
+setwd("~/OneDrive/3 Semester/Experimental Methods 3/Assignment 4/CleanData")
+prepro_filelist = list.files(pattern = "Study2") # load the preprocessed files
+
+num=str_extract_all(prepro_filelist, "\\d+") #extract all numbers in the file name (i.e Study?_G?_T?)
+
+df= as.data.frame(t(as.data.frame(num))) #create a transposed (i.e. "tipped") dataframe of these number
+rownames(df)<-NULL #Remove rownames.
+
+pairs=as.numeric(unique(as.numeric(as.character(df$V2)))) #create pairs, i.e. unique group numbers
+
+SurrogateList <- expand.grid(a = pairs, b = pairs) # expand.grid combines all possible combinations of a given vector
+SurrogateList = subset(SurrogateList, a != b) # Ensure that pair 1 (i.e group1) doesn't get paired with it self.
+
+
+# Per each condition
+for (co in c("Synchronous","TurnTaking","Conversation")){ #loop through a list of condintions 
+  for (i in 1:nrow(SurrogateList)){ #and loop through all the pairings of the surrogate list
+    
+  #start recreate filenames from the working directory based on the matching from the surrogatelist
+  f1=paste0('Study2_G',SurrogateList$a[i]) #Insert group numeber from Surrogatelist 
+  f2=paste0('Study2_G',SurrogateList$b[i])
+  
+  file1=prepro_filelist[grepl(f1,prepro_filelist) & grepl(co,prepro_filelist)] #insert conditions as well.
+  file2=prepro_filelist[grepl(f2,prepro_filelist) & grepl(co,prepro_filelist)]
+  
+  d1=read.csv(file1) #Load the recreated filenames
+  
+  d2=read.csv(file2) 
+  
+  #Ensure both dataframes have the same length
+  if (nrow(d1)>nrow(d2)){
+    d1=d1[1:nrow(d2),]
+  } else {
+    d2=d2[1:nrow(d1),]
+  }
+  
+  #creation of surrogate files. (Riccardo's idea of having fun and completely overdoing it ;-) ) 
+  #per each 2 pairs there are 4 possible surrogate pairs: 
+  #pair1person1 w pair2person2; 
+  d3=data.frame(Resp1=d1$Resp1,Resp2=d2$Resp2,HR1=d1$HR1,HR2=d2$HR2)
+  #pair1person2 w pair2person2;
+  d4=data.frame(Resp1=d2$Resp1,Resp2=d1$Resp2,HR1=d2$HR1,HR2=d1$HR2)
+  
+  #pair1person1 w pair2person1;
+  d5=data.frame(Resp1=d1$Resp1,Resp2=d2$Resp1,HR1=d1$HR1,HR2=d2$HR1)
+  #pair1person2 w pair2person2
+  d6=data.frame(Resp1=d2$Resp2,Resp2=d1$Resp2,HR1=d2$HR2,HR2=d1$HR2)
+  
+  #Make filenames that tells which pairs have been mixed
+  file3=paste0("Study2_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"a_",co,".csv")
+  file4=paste0("Study2_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"b_",co,".csv")
+  file5=paste0("Study2_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"c_",co,".csv")
+  file6=paste0("Study2_SurrogateGroup",SurrogateList$a[i],"&",SurrogateList$b[i],"d_",co,".csv")
+  
+  #write csv files
+  write_csv(d3,file.path("surrogate",file3))
+  write_csv(d4,file.path("surrogate",file4))
+  write_csv(d5,file.path("surrogate",file5))
+  write_csv(d6,file.path("surrogate",file6))
+  }
+}
+
+
+
+
+## Running CRQA:
+CRQA = function(data) {
+  RespCRQA = crqa(data$Resp1, data$Resp2, delay = 29, embed = 3,
+                   radius = 0.8, normalize = 0, rescale = 0,
+                   mindiagline = 2, minvertline = 2)
+  RespCRQA$RP = NULL  # Remove large matrix
+  RespCRQA = as_tibble(RespCRQA) %>%
+    mutate(type = 'Resp')
+  
+  HrCRQA = crqa(data$HR1, data$HR2, delay = 30, embed = 12,
+                radius = 2.6, normalize = 0, rescale = 0,
+                mindiagline = 2, minvertline = 2)
+  HrCRQA$RP = NULL  # Remove large matrix
+  HrCRQA = as_tibble(HrCRQA) %>%
+    mutate(type = 'HR')
+  
+  return(rbind(RespCRQA, HrCRQA))
+  
+}
+
+
+filelist_surrogate = list.files(path = "CleanData/surrogate", pattern = ".csv")
+setwd("~/OneDrive/3 Semester/Experimental Methods 3/Assignment 4/CleanData/surrogate")
+CRQA_surrogate = data.frame()
+n=1
+
+for (file in filelist_surrogate) {
+  d=read_csv(paste0("",file))
+  
+  data=CRQA(d)
+  
+  data$filename = filelist_surrogate[n]
+  
+  CRQA_surrogate=rbind(data, CRQA_surrogate)
+  
+  n=n+1
+  
+}
+
+filelist3 = list.files(path = "PreprocessedData", pattern = ".csv")
+CRQA_shuffled = data.frame()
+n=1
+
+for (file in filelist3) {
+  d=read_csv(paste0("PreprocessedData/",file))
+  #Sample function shuffles the results
+  d$HR1S = sample(d$HR1S)
+  d$HR2S = sample(d$HR2S)
+  d$Resp1S = sample(d$Resp1S)
+  d$Resp2S = sample(d$Resp2S)
+  
+  data=CRQA(d)
+  
+  data$filename = filelist3[n]
+  
+  CRQA_shuffled=rbind(data, CRQA_shuffled)
+  
+  n=n+1
+  
+}
+
+```
 ### Testing effects of conditions
  - make a (probably underpowered) mixed model testing effects of the different conditions on heart rate and respiration coordination
  - N.B: would it make sense to include surrogate pairs? and if so how? what would that tell you?
